@@ -38,6 +38,7 @@ jobs:
   build_and_push:
     runs-on: ubuntu-22.04
     if: github.event_name == 'push'
+    needs: lint
 
     steps:
       - name: Checkout master
