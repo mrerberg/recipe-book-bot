@@ -64,6 +64,8 @@ func (p *Processor) Process(ctx context.Context, event events.Event) error {
 		return p.processMessage(ctx, event)
 	case events.CallBack:
 		return p.processCallBack(ctx, event)
+	case events.Unknown:
+		return lib.WrapErr("can't process message", ErrUnknownEventType)
 	default:
 		return lib.WrapErr("can't process message", ErrUnknownEventType)
 	}
@@ -76,7 +78,7 @@ func (p *Processor) processMessage(ctx context.Context, event events.Event) erro
 		return lib.WrapErr(msg, err)
 	}
 
-	if err := p.doCmd(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
+	if err = p.doCmd(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
 		return lib.WrapErr(msg, err)
 	}
 
@@ -90,7 +92,7 @@ func (p *Processor) processCallBack(ctx context.Context, event events.Event) err
 		return lib.WrapErr(msg, err)
 	}
 
-	if err := p.doCallBack(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
+	if err = p.doCallBack(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
 		return lib.WrapErr(msg, err)
 	}
 
