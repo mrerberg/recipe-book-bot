@@ -78,10 +78,10 @@ func (c *Client) FetchUpdates(offset int, limit int) ([]Update, error) {
 }
 
 // Implements https://core.telegram.org/bots/api#sendmessage
-func (c *Client) SendMessage(chatId int, text string) error {
+func (c *Client) SendMessage(chatID int, text string) error {
 	q := url.Values{}
 
-	q.Add("chat_id", strconv.Itoa(chatId))
+	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
 
 	err := c.makeRequest(sendMessage, q, nil)
@@ -92,12 +92,12 @@ func (c *Client) SendMessage(chatId int, text string) error {
 	return nil
 }
 
-func (c *Client) SendMessageWithMarkup(chatId int, text string, inlineKeyboard *InlineKeyboard) error {
+func (c *Client) SendMessageWithMarkup(chatID int, text string, inlineKeyboard *InlineKeyboard) error {
 	q := url.Values{}
 
 	data, _ := json.Marshal(inlineKeyboard)
 
-	q.Add("chat_id", strconv.Itoa(chatId))
+	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
 	q.Add("reply_markup", string(data))
 
@@ -141,7 +141,7 @@ func (c *Client) makeRequest(method string, query url.Values, v interface{}) err
 		Path:   path.Join(c.basePath, method),
 	}
 
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil) //nolint:noctx // no need to pass context
 	if err != nil {
 		// TODO: read errors.Is, errors.As
 		return lib.WrapErr(errMsg, err)

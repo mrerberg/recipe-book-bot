@@ -46,6 +46,6 @@ func (p *Processor) doCmd(ctx context.Context, text string, chatID int, username
 	case AllCmd:
 		return p.sendAll(ctx, chatID, username)
 	default:
-		return p.tg.SendMessage(chatID, UnknownCommand)
+		return p.tg.SendMessage(chatID, unknownCommandMsg)
 	}
 }

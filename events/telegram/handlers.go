@@ -14,17 +14,17 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 )
 
-func (p *Processor) sendHelp(ctx context.Context, chatID int) error {
+func (p *Processor) sendHelp(_ context.Context, chatID int) error {
 	return p.tg.SendMessage(chatID, helpMsg)
 }
 
-func (p *Processor) sendHello(ctx context.Context, chatID int) error {
+func (p *Processor) sendHello(_ context.Context, chatID int) error {
 	return p.tg.SendMessage(chatID, helloMsg)
 }
 
-func (p *Processor) startRecipeSave(ctx context.Context, chatID int, username string) error {
-	data, err := json.Marshal(struct{}{})
-	err = p.cache.Add(&memcache.Item{Key: username, Value: data})
+func (p *Processor) startRecipeSave(_ context.Context, chatID int, username string) error {
+	data, _ := json.Marshal(struct{}{})
+	err := p.cache.Add(&memcache.Item{Key: username, Value: data})
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (p *Processor) saveRecipe(ctx context.Context, chatID int, rawRecipe string
 	}
 
 	if res.Name != "" && res.Description != "" && len(res.Ingredients) > 0 && res.Instructions == "" {
-		_, err := p.storage.Save(ctx, &storage.Recipe{
+		_, err = p.storage.Save(ctx, &storage.Recipe{
 			Name:         res.Name,
 			Username:     res.Username,
 			Description:  res.Description,
@@ -94,7 +94,7 @@ func (p *Processor) saveRecipe(ctx context.Context, chatID int, rawRecipe string
 		})
 		if err != nil {
 			// TODO: log
-			return p.tg.SendMessage(chatID, notSavedRecipe)
+			return p.tg.SendMessage(chatID, notSavedRecipeMsg)
 		}
 
 		err = p.cache.Delete(username)
@@ -102,7 +102,7 @@ func (p *Processor) saveRecipe(ctx context.Context, chatID int, rawRecipe string
 			return lib.WrapErr("saveRecipe", err)
 		}
 
-		return p.tg.SendMessage(chatID, fmt.Sprintf(RecipeSaved, res.Name))
+		return p.tg.SendMessage(chatID, fmt.Sprintf(recipeSavedMsg, res.Name))
 	}
 
 	return p.tg.SendMessage(chatID, "Ошибка. Попробуй добавить рецепт позже")
@@ -115,7 +115,7 @@ func (p *Processor) sendAll(ctx context.Context, chatID int, username string) er
 	}
 
 	if len(recipes) == 0 {
-		return p.tg.SendMessage(chatID, NoRecipes)
+		return p.tg.SendMessage(chatID, noRecipesMsg)
 	}
 
 	var str string
@@ -135,7 +135,7 @@ func (p *Processor) deleteRecipe(ctx context.Context, chatID int, recipeName str
 		return err
 	}
 
-	msg := fmt.Sprintf(RecipeDeleted, recipeName)
+	msg := fmt.Sprintf(recipeDeletedMsg, recipeName)
 	return p.tg.SendMessage(chatID, msg)
 }
 
@@ -144,7 +144,7 @@ func (p *Processor) getRecipe(ctx context.Context, chatID int, recipeName string
 	if err != nil {
 		log.Printf("[ERR] could not find recipe %v from user %v", recipeName, username)
 
-		return p.tg.SendMessage(chatID, fmt.Sprintf(NotFoundRecipe, recipeName))
+		return p.tg.SendMessage(chatID, fmt.Sprintf(notFoundRecipeMsg, recipeName))
 	}
 
 	inlineKeyboard := tgClient.InlineKeyboard{
@@ -168,7 +168,7 @@ func (p *Processor) getFullRecipe(ctx context.Context, chatID int, recipeName st
 	if err != nil {
 		log.Printf("[ERR] could not find recipe %v from user %v. Error: %v", recipeName, username, err)
 
-		return p.tg.SendMessage(chatID, fmt.Sprintf(NotFoundRecipe, recipeName))
+		return p.tg.SendMessage(chatID, fmt.Sprintf(notFoundRecipeMsg, recipeName))
 	}
 
 	var result []string
