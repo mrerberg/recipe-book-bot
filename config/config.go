@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	TgBotToken            string
-	TgApiHost             string
+	TgAPIHost             string
 	MongoConnectionString string
 	CacheHost             string
 }
@@ -36,7 +36,7 @@ func MustLoad() Config {
 
 	return Config{
 		TgBotToken:            token,
-		TgApiHost:             apiHost,
+		TgAPIHost:             apiHost,
 		MongoConnectionString: mongoConnectionString,
 		CacheHost:             cacheHost,
 	}

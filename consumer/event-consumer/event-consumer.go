@@ -1,4 +1,4 @@
-package event_consumer
+package eventconsumer
 
 import (
 	"context"
@@ -36,15 +36,11 @@ func (c Consumer) Start() error {
 			continue
 		}
 
-		if err := c.handleEvents(context.Background(), events); err != nil {
-			log.Print(err)
-
-			continue
-		}
+		c.handleEvents(context.Background(), events)
 	}
 }
 
-func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) error {
+func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) {
 	for _, event := range events {
 		log.Printf("[EVENT CONSUMER] Got new event: %s", event.Text)
 
@@ -54,6 +50,4 @@ func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) erro
 			continue
 		}
 	}
-
-	return nil
 }

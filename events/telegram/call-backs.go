@@ -17,7 +17,7 @@ func (p *Processor) doCallBack(ctx context.Context, text string, chatID int, use
 
 	handleUnknownCb := func() error {
 		log.Printf("got new callback '%s' from '%s", text, username)
-		return p.tg.SendMessage(chatID, UnknownCb)
+		return p.tg.SendMessage(chatID, unknownCbMsg)
 	}
 
 	if !events.IsCallBack(text) {
