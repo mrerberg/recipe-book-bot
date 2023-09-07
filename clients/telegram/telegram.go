@@ -141,7 +141,7 @@ func (c *Client) makeRequest(method string, query url.Values, v interface{}) err
 		Path:   path.Join(c.basePath, method),
 	}
 
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil) //nolint:noctx // no need to pass context
 	if err != nil {
 		// TODO: read errors.Is, errors.As
 		return lib.WrapErr(errMsg, err)
