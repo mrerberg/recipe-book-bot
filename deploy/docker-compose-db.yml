@@ -8,3 +8,9 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
+
+  memcached:
+    image: memcached:1.6.21
+    restart: always
+    ports:
+      - "11211:11211"

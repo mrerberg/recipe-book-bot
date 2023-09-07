@@ -4,9 +4,12 @@ import (
 	"log"
 	tgClient "recipe-book-bot/clients/telegram"
 	"recipe-book-bot/config"
-	event_consumer "recipe-book-bot/consumer/event-consumer"
+	eventConsumer "recipe-book-bot/consumer/event-consumer"
 	"recipe-book-bot/events/telegram"
 	"recipe-book-bot/storage/mongo"
+
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -14,6 +17,8 @@ const (
 )
 
 func main() {
+	godotenv.Load()
+
 	cfg := config.MustLoad()
 
 	client := tgClient.New(cfg.TgBotToken, cfg.TgApiHost)
@@ -21,16 +26,19 @@ func main() {
 
 	storage := mongo.New(cfg.MongoConnectionString)
 
+	cache := memcache.New(cfg.CacheHost)
+
 	eventsProcessor := telegram.New(
 		client,
 		storage,
+		cache,
 	)
 
-	log.Print("service started")
+	log.Print("[APP] Service started")
 
-	consumer := event_consumer.New(eventsProcessor, eventsProcessor, batchSize)
+	consumer := eventConsumer.New(eventsProcessor, eventsProcessor, batchSize)
 
 	if err := consumer.Start(); err != nil {
-		log.Fatal("service is stopped", err)
+		log.Fatal("[APP] Service stopped", err)
 	}
 }

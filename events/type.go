@@ -13,6 +13,7 @@ type Processor interface {
 const (
 	Unknown EventType = iota
 	Message
+	CallBack
 )
 
 type EventType int

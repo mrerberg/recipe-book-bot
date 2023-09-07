@@ -25,7 +25,7 @@ func (c Consumer) Start() error {
 	for {
 		events, err := c.fetcher.Fetch(c.batchSize)
 		if err != nil {
-			log.Printf("[ERR] consumer: %s", err.Error())
+			log.Printf("[EVENT CONSUMER] Error: %s", err.Error())
 
 			continue
 		}
@@ -46,10 +46,10 @@ func (c Consumer) Start() error {
 
 func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) error {
 	for _, event := range events {
-		log.Printf("got new event: %s", event.Text)
+		log.Printf("[EVENT CONSUMER] Got new event: %s", event.Text)
 
 		if err := c.processor.Process(ctx, event); err != nil {
-			log.Printf("can't handle event: %s", err.Error())
+			log.Printf("[EVENT CONSUMER] Can't handle event: %s", err.Error())
 
 			continue
 		}

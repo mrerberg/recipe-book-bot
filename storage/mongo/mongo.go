@@ -150,7 +150,6 @@ func toRecipe(r storage.Recipe) Recipe {
 		Instructions: r.Instructions,
 		Username:     r.Username,
 	}
-
 }
 
 func (r Recipe) Filter() bson.M {

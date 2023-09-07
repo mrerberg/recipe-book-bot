@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -31,7 +32,7 @@ func New(token string, host string) *Client {
 	}
 }
 
-func (c *Client) InitBotCommands() error {
+func (c *Client) InitBotCommands() {
 	var commands = Commands{
 		LanguageCode: "en",
 		Commands: []Command{
@@ -44,22 +45,20 @@ func (c *Client) InitBotCommands() error {
 				Description: "Display help information",
 			},
 			{
-				Command:     "all",
-				Description: "Get all recipes in book",
+				Command:     "add",
+				Description: "Start adding new recipe",
 			},
 			{
-				Command:     "template",
-				Description: "Get template to add recipe",
+				Command:     "all",
+				Description: "Get all recipes in book",
 			},
 		},
 	}
 
 	err := c.SetCommands(commands)
 	if err != nil {
-		return err
+		log.Printf("could not init bot commands. Error: %v", err)
 	}
-
-	return nil
 }
 
 // Implements https://core.telegram.org/bots/api#getupdates
@@ -69,13 +68,9 @@ func (c *Client) FetchUpdates(offset int, limit int) ([]Update, error) {
 	q.Add("offset", strconv.Itoa(offset))
 	q.Add("limit", strconv.Itoa(limit))
 
-	data, err := c.makeRequest(getUpdates, q)
-	if err != nil {
-		return nil, err
-	}
-
 	var res UpdateResponse
-	if err := json.Unmarshal(data, &res); err != nil {
+	err := c.makeRequest(getUpdates, q, &res)
+	if err != nil {
 		return nil, err
 	}
 
@@ -89,7 +84,24 @@ func (c *Client) SendMessage(chatId int, text string) error {
 	q.Add("chat_id", strconv.Itoa(chatId))
 	q.Add("text", text)
 
-	_, err := c.makeRequest(sendMessage, q)
+	err := c.makeRequest(sendMessage, q, nil)
+	if err != nil {
+		return lib.WrapErr("could not send message", err)
+	}
+
+	return nil
+}
+
+func (c *Client) SendMessageWithMarkup(chatId int, text string, inlineKeyboard *InlineKeyboard) error {
+	q := url.Values{}
+
+	data, _ := json.Marshal(inlineKeyboard)
+
+	q.Add("chat_id", strconv.Itoa(chatId))
+	q.Add("text", text)
+	q.Add("reply_markup", string(data))
+
+	err := c.makeRequest(sendMessage, q, nil)
 	if err != nil {
 		return lib.WrapErr("could not send message", err)
 	}
@@ -102,10 +114,13 @@ func (c *Client) SetCommands(commands Commands) error {
 	q := url.Values{}
 
 	cmds, err := json.Marshal(commands.Commands)
+	if err != nil {
+		return err
+	}
 	q.Add("commands", string(cmds))
 	q.Add("language_code", commands.LanguageCode)
 
-	_, err = c.makeRequest(setMyCommands, q)
+	err = c.makeRequest(setMyCommands, q, nil)
 	if err != nil {
 		return lib.WrapErr("could not send message", err)
 	}
@@ -117,7 +132,7 @@ func newBasePath(token string) string {
 	return "bot" + token
 }
 
-func (c *Client) makeRequest(method string, query url.Values) ([]byte, error) {
+func (c *Client) makeRequest(method string, query url.Values, v interface{}) error {
 	const errMsg = "could not make request"
 
 	u := url.URL{
@@ -129,19 +144,15 @@ func (c *Client) makeRequest(method string, query url.Values) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		// TODO: read errors.Is, errors.As
-		// TODO: Handle error! Если приходит 400, приложение не сигнализирует об этом
-		fmt.Printf("[ERROR] [makeRequest] %v \n", err)
-		return nil, lib.WrapErr(errMsg, err)
+		return lib.WrapErr(errMsg, err)
 	}
 
 	req.URL.RawQuery = query.Encode()
 
 	res, err := c.client.Do(req)
 	if err != nil {
-		return nil, lib.WrapErr(errMsg, err)
+		return lib.WrapErr(errMsg, err)
 	}
-
-	fmt.Printf("SAS %v", req.URL)
 
 	defer func() {
 		_ = res.Body.Close()
@@ -149,8 +160,20 @@ func (c *Client) makeRequest(method string, query url.Values) ([]byte, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, lib.WrapErr(errMsg, err)
+		return lib.WrapErr(errMsg, err)
 	}
 
-	return body, nil
+	if res.StatusCode != http.StatusOK {
+		return lib.WrapErr(fmt.Sprintf("Request status: %v", res.StatusCode), nil)
+	}
+
+	if v == nil {
+		return nil
+	}
+
+	if err = json.Unmarshal(body, v); err != nil {
+		return lib.WrapErr("Error: could not unmarshal JSON response", err)
+	}
+
+	return nil
 }

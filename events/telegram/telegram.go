@@ -7,6 +7,8 @@ import (
 	"recipe-book-bot/events"
 	lib "recipe-book-bot/lib/error"
 	"recipe-book-bot/storage"
+
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 var (
@@ -18,6 +20,7 @@ type Processor struct {
 	tg      *telegram.Client
 	offset  int
 	storage storage.Storage
+	cache   *memcache.Client
 }
 
 type Metadata struct {
@@ -25,11 +28,12 @@ type Metadata struct {
 	Username string
 }
 
-func New(client *telegram.Client, storage storage.Storage) *Processor {
+func New(client *telegram.Client, storage storage.Storage, cache *memcache.Client) *Processor {
 	return &Processor{
 		tg:      client,
 		offset:  0,
 		storage: storage,
+		cache:   cache,
 	}
 }
 
@@ -58,6 +62,8 @@ func (p *Processor) Process(ctx context.Context, event events.Event) error {
 	switch event.Type {
 	case events.Message:
 		return p.processMessage(ctx, event)
+	case events.CallBack:
+		return p.processCallBack(ctx, event)
 	default:
 		return lib.WrapErr("can't process message", ErrUnknownEventType)
 	}
@@ -65,12 +71,27 @@ func (p *Processor) Process(ctx context.Context, event events.Event) error {
 
 func (p *Processor) processMessage(ctx context.Context, event events.Event) error {
 	meta, err := meta(event)
+	msg := "can't process message"
 	if err != nil {
-		return lib.WrapErr("can't process message", err)
+		return lib.WrapErr(msg, err)
 	}
 
 	if err := p.doCmd(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
-		return lib.WrapErr("can't process message", err)
+		return lib.WrapErr(msg, err)
+	}
+
+	return nil
+}
+
+func (p *Processor) processCallBack(ctx context.Context, event events.Event) error {
+	meta, err := meta(event)
+	msg := "can't process callback"
+	if err != nil {
+		return lib.WrapErr(msg, err)
+	}
+
+	if err := p.doCallBack(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
+		return lib.WrapErr(msg, err)
 	}
 
 	return nil
@@ -86,10 +107,21 @@ func meta(event events.Event) (Metadata, error) {
 }
 
 func event(update telegram.Update) events.Event {
-	if update.Message == nil {
+	if update.Message == nil && update.CallbackQuery == nil {
 		return events.Event{
 			Type: events.Unknown,
 			Text: "",
+		}
+	}
+
+	if update.CallbackQuery != nil {
+		return events.Event{
+			Type: events.CallBack,
+			Text: update.CallbackQuery.Data,
+			Metadata: Metadata{
+				ChatID:   update.CallbackQuery.Message.Chat.ID,
+				Username: update.CallbackQuery.Message.Chat.Username,
+			},
 		}
 	}
 
