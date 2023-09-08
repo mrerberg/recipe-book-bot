@@ -1,13 +1,17 @@
 name: Stage CI
 
-on: workflow_dispatch
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - "feat/integrate-linter"
 
 env:
   REGISTRY_BASE_URL: "cr.selcloud.ru"
   REGISTRY: "cr.selcloud.ru/recipe-book-bot"
   IMAGE_NAME: "recipe-book-bot"
   CONTAINER_NAME: "recipe-book-bot"
-  ENV_FILE_PATH: "./.env"
+  ENV_FILE_PATH: "./.env.stage"
 
 jobs:
   build_and_push:
