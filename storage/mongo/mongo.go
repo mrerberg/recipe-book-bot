@@ -30,17 +30,17 @@ type Recipe struct {
 }
 
 func New(connectSting string) Storage {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) //nolint:gomnd // no magic number
 	defer cancel()
 
 	opts := options.Client().ApplyURI(connectSting)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		log.Fatal("[DB] Error withing connection", err)
+		log.Panic("[DB] Error withing connection", err)
 	}
 
-	if err := client.Ping(ctx, nil); err != nil {
-		log.Fatal("[DB] Error withing connection", err)
+	if err = client.Ping(ctx, nil); err != nil {
+		log.Panic("[DB] Error withing connection", err)
 	}
 
 	recipes := Recipes{
@@ -105,7 +105,6 @@ func (s Storage) GetAllByUserName(ctx context.Context, username string) ([]*stor
 			Ingredients:  result.Ingredients,
 			Instructions: result.Instructions,
 		})
-
 	}
 
 	return r, nil
@@ -140,16 +139,6 @@ func (s Storage) FindByName(ctx context.Context, name string, username string) (
 		Ingredients:  result.Ingredients,
 		Instructions: result.Instructions,
 	}, nil
-}
-
-func toRecipe(r storage.Recipe) Recipe {
-	return Recipe{
-		Name:         r.Name,
-		Description:  r.Description,
-		Ingredients:  r.Ingredients,
-		Instructions: r.Instructions,
-		Username:     r.Username,
-	}
 }
 
 func (r Recipe) Filter() bson.M {
