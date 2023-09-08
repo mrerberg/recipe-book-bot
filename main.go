@@ -19,7 +19,7 @@ const (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("[APP] Error while loading env file. Error:", err)
+		log.Println("[APP] Error while loading env file. Error: ", err)
 	}
 
 	cfg := config.MustLoad()
