@@ -38,6 +38,7 @@ jobs:
   build_and_push:
     runs-on: ubuntu-22.04
     if: github.event_name == 'push'
+    needs: lint
 
     steps:
       - name: Checkout master
@@ -77,6 +78,9 @@ jobs:
 
             # Remove old container
             docker rm $(echo $CONTAINER_NAME)
+
+            # Remove unused images
+            docker image prune -a -f
 
             # Run a new container from a new image
             docker run -d --env-file $(echo $ENV_FILE_PATH) \
