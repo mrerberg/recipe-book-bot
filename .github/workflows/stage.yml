@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY_BASE_URL: "cr.selcloud.ru"
+  REGISTRY: "cr.selcloud.ru/recipe-book-bot"
+  IMAGE_NAME: "recipe-book-bot"
+  CONTAINER_NAME: "recipe-book-bot"
+  ENV_FILE_PATH: "./.env"
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+
+      - name: Build container image
+        run: docker build -t $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)-SNAPSHOT .
+
+      - name: Log in to container registry
+        run: docker login $REGISTRY_BASE_URL -u ${{ secrets.REGISTRY_LOGIN }} -p ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Push image to container Registry
+        run: docker push $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)-SNAPSHOT
+
+  deploy:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push'
+    needs: build_and_push
+
+    steps:
+      - name: Deploy server via SSH action
+        uses: appleboy/ssh-action@v0.1.4
+        with:
+          debug: true
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: IMAGE_NAME,REGISTRY,GITHUB_SHA,CONTAINER_NAME,REGISTRY_BASE_URL,ENV_FILE_PATH
+          script: |
+            # Login into Container Registry
+            docker login $(echo $REGISTRY_BASE_URL) -u ${{ secrets.REGISTRY_LOGIN }} -p ${{ secrets.REGISTRY_PASSWORD }}
+
+            # Set env variables
+
+            # Stop running container
+            docker stop $(echo $CONTAINER_NAME)
+
+            # Remove old container
+            docker rm $(echo $CONTAINER_NAME)
+
+            # Run a new container from a new image
+            docker run -d --env-file $(echo $ENV_FILE_PATH) \
+            --restart always \
+            --publish 8000:8000 \
+            --net=host \
+            --name $(echo $CONTAINER_NAME) \
+            $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)-SNAPSHOT
