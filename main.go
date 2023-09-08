@@ -17,11 +17,14 @@ const (
 )
 
 func main() {
-	godotenv.Load()
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("[APP] Error while loading env file. Error: ", err)
+	}
 
 	cfg := config.MustLoad()
 
-	client := tgClient.New(cfg.TgBotToken, cfg.TgApiHost)
+	client := tgClient.New(cfg.TgBotToken, cfg.TgAPIHost)
 	client.InitBotCommands()
 
 	storage := mongo.New(cfg.MongoConnectionString)
@@ -38,7 +41,7 @@ func main() {
 
 	consumer := eventConsumer.New(eventsProcessor, eventsProcessor, batchSize)
 
-	if err := consumer.Start(); err != nil {
+	if err = consumer.Start(); err != nil {
 		log.Fatal("[APP] Service stopped", err)
 	}
 }
