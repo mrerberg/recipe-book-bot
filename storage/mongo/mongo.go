@@ -30,7 +30,7 @@ type Recipe struct {
 }
 
 func New(connectSting string) Storage {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) //nolint:gomnd // no magic number
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	opts := options.Client().ApplyURI(connectSting)
