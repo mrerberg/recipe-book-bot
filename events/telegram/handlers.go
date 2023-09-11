@@ -167,7 +167,7 @@ func (p *Processor) sendAll(ctx context.Context, chatID int, username string, pa
 		),
 	)
 
-	err = p.tg.SendMessageWithMarkup(chatID, "Ваши рецепты:", &inlineKeyboard)
+	err = p.tg.SendMessageWithMarkup(chatID, "Your recipes:", &inlineKeyboard)
 	if err != nil {
 		return err
 	}
@@ -198,12 +198,12 @@ func (p *Processor) getRecipe(ctx context.Context, chatID int, recipeName string
 
 	inlineKeyboard.AddKeys(
 		NewInlineKeyboardRow(
-			NewInlineKeyboardButton("Показать рецепт", fmt.Sprintf("cb:get:%s", recipeName)),
-			NewInlineKeyboardButton("Удалить рецепт", fmt.Sprintf("cb:delete:%s", recipeName)),
+			NewInlineKeyboardButton("Show recipe", fmt.Sprintf("cb:get:%s", recipeName)),
+			NewInlineKeyboardButton("Delete recipe", fmt.Sprintf("cb:delete:%s", recipeName)),
 		),
 	)
 
-	msg := fmt.Sprintf("Блюдо: %v", recipe.Name)
+	msg := fmt.Sprintf("Dish: %v", recipe.Name)
 
 	return p.tg.SendMessageWithMarkup(
 		chatID,
@@ -225,8 +225,10 @@ func (p *Processor) getFullRecipe(ctx context.Context, chatID int, recipeName st
 		result = append(result, "- "+ingredient)
 	}
 
-	msg := fmt.Sprintf(templateMsg, recipe.Name, strings.Join(result, "\n"),
-		recipe.Instructions)
+	msg := fmt.Sprintf(
+		templateMsg, recipe.Name, strings.Join(result, "\n"),
+		recipe.Instructions,
+	)
 
 	return p.tg.SendMessage(
 		chatID,
