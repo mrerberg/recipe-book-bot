@@ -4,15 +4,17 @@ import (
 	"context"
 	"log"
 	"recipe-book-bot/events"
+	"strconv"
 	"strings"
 )
 
 const (
 	DeleteCb = "delete"
 	GetCb    = "get"
+	GetAllCb = "getall"
 )
 
-func (p *Processor) doCallBack(ctx context.Context, text string, chatID int, username string) error {
+func (p *Processor) doCallBack(ctx context.Context, text string, chatID int, username string, messageID int) error {
 	text = strings.TrimSpace(text)
 
 	handleUnknownCb := func() error {
@@ -26,13 +28,16 @@ func (p *Processor) doCallBack(ctx context.Context, text string, chatID int, use
 
 	parts := events.ParseCallBack(text)
 	cbType := parts[1]
-	recipeName := parts[len(parts)-1]
+	value := parts[len(parts)-1]
 
 	switch cbType {
 	case DeleteCb:
-		return p.deleteRecipe(ctx, chatID, recipeName, username)
+		return p.deleteRecipe(ctx, chatID, value, username)
 	case GetCb:
-		return p.getFullRecipe(ctx, chatID, recipeName, username)
+		return p.getFullRecipe(ctx, chatID, value, username)
+	case GetAllCb:
+		page, _ := strconv.ParseInt(value, 10, 64)
+		return p.sendAll(ctx, chatID, username, page, messageID)
 	default:
 		return handleUnknownCb()
 	}

@@ -110,6 +110,38 @@ func (s Storage) GetAllByUserName(ctx context.Context, username string) ([]*stor
 	return r, nil
 }
 
+func (s Storage) GetAllByUserNameTest(ctx context.Context, username string, page int64, recipesPerPage int64) ([]*storage.Recipe, error) {
+	normalizedPage := page - 1
+	if normalizedPage <= 0 {
+		normalizedPage = 0
+	}
+	opts := options.Find().SetSkip(normalizedPage * recipesPerPage).SetLimit(recipesPerPage)
+	cursor, err := s.recipes.Find(ctx, bson.M{
+		"username": username,
+	}, opts)
+	if err != nil {
+		return nil, lib.WrapErr("can't get recipes", err)
+	}
+
+	var results []Recipe
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, lib.WrapErr("can't decode recipes", err)
+	}
+
+	var r []*storage.Recipe
+
+	for _, result := range results {
+		r = append(r, &storage.Recipe{
+			Name:         result.Name,
+			Description:  result.Description,
+			Ingredients:  result.Ingredients,
+			Instructions: result.Instructions,
+		})
+	}
+
+	return r, nil
+}
+
 func (s Storage) Exists(ctx context.Context, name string, username string) (bool, error) {
 	var result Recipe
 	err := s.recipes.FindOne(ctx, bson.M{

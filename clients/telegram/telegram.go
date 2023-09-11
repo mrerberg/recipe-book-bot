@@ -15,6 +15,7 @@ import (
 const (
 	getUpdates    = "getUpdates"
 	sendMessage   = "sendMessage"
+	deleteMessage = "deleteMessage"
 	setMyCommands = "setMyCommands"
 )
 
@@ -75,6 +76,22 @@ func (c *Client) FetchUpdates(offset int, limit int) ([]Update, error) {
 	}
 
 	return res.Result, nil
+}
+
+// Implements https://core.telegram.org/bots/api#deletemessage
+func (c *Client) DeleteMessage(chatID int, messageID int) error {
+	q := url.Values{}
+
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("message_id", strconv.Itoa(messageID))
+
+	var res struct{}
+	err := c.makeRequest(deleteMessage, q, &res)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Implements https://core.telegram.org/bots/api#sendmessage
@@ -164,7 +181,7 @@ func (c *Client) makeRequest(method string, query url.Values, v interface{}) err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return lib.WrapErr(fmt.Sprintf("Request status: %v", res.StatusCode), nil)
+		return lib.WrapErr(fmt.Sprintf("Method: %v, Request status: %v", method, res.StatusCode), nil)
 	}
 
 	if v == nil {

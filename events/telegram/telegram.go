@@ -24,8 +24,9 @@ type Processor struct {
 }
 
 type Metadata struct {
-	ChatID   int
-	Username string
+	ChatID    int
+	MessageID int
+	Username  string
 }
 
 func New(client *telegram.Client, storage storage.Storage, cache *memcache.Client) *Processor {
@@ -92,7 +93,7 @@ func (p *Processor) processCallBack(ctx context.Context, event events.Event) err
 		return lib.WrapErr(msg, err)
 	}
 
-	if err = p.doCallBack(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
+	if err = p.doCallBack(ctx, event.Text, meta.ChatID, meta.Username, meta.MessageID); err != nil {
 		return lib.WrapErr(msg, err)
 	}
 
@@ -121,8 +122,9 @@ func event(update telegram.Update) events.Event {
 			Type: events.CallBack,
 			Text: update.CallbackQuery.Data,
 			Metadata: Metadata{
-				ChatID:   update.CallbackQuery.Message.Chat.ID,
-				Username: update.CallbackQuery.Message.Chat.Username,
+				ChatID:    update.CallbackQuery.Message.Chat.ID,
+				MessageID: update.CallbackQuery.Message.MessageID,
+				Username:  update.CallbackQuery.Message.Chat.Username,
 			},
 		}
 	}
