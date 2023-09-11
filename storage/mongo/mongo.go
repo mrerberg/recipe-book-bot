@@ -83,10 +83,29 @@ func (s Storage) Delete(ctx context.Context, name string, username string) error
 	return nil
 }
 
-func (s Storage) GetAllByUserName(ctx context.Context, username string) ([]*storage.Recipe, error) {
+func (s Storage) GetTotalRecipesCount(ctx context.Context, username string) (int64, error) {
+	opts := options.Count().SetHint("_id_")
+	cursor, err := s.recipes.CountDocuments(ctx, bson.M{
+		"username": username,
+	}, opts)
+	if err != nil {
+		return 0, lib.WrapErr("can't get recipes", err)
+	}
+
+	return cursor, nil
+}
+
+func (s Storage) GetAllByUserName(
+	ctx context.Context, username string, page int64, recipesPerPage int64,
+) ([]*storage.Recipe, error) {
+	normalizedPage := page - 1
+	if normalizedPage <= 0 {
+		normalizedPage = 0
+	}
+	opts := options.Find().SetSkip(normalizedPage * recipesPerPage).SetLimit(recipesPerPage)
 	cursor, err := s.recipes.Find(ctx, bson.M{
 		"username": username,
-	})
+	}, opts)
 	if err != nil {
 		return nil, lib.WrapErr("can't get recipes", err)
 	}

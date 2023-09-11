@@ -40,6 +40,10 @@ type InlineKeyboard struct {
 	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
+func (k *InlineKeyboard) AddKeys(keyButton []InlineKeyboardButton) {
+	k.InlineKeyboard = append(k.InlineKeyboard, keyButton)
+}
+
 type InlineKeyboardButton struct {
 	Text         string `json:"text"`
 	CallbackData string `json:"callback_data"`

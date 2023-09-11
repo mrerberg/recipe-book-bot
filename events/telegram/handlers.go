@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	tgClient "recipe-book-bot/clients/telegram"
+	"recipe-book-bot/events"
 	lib "recipe-book-bot/lib/error"
 	"recipe-book-bot/lib/utils"
 	"recipe-book-bot/storage"
@@ -105,26 +106,73 @@ func (p *Processor) saveRecipe(ctx context.Context, chatID int, rawRecipe string
 		return p.tg.SendMessage(chatID, fmt.Sprintf(recipeSavedMsg, res.Name))
 	}
 
-	return p.tg.SendMessage(chatID, "Ошибка. Попробуй добавить рецепт позже")
+	return p.tg.SendMessage(chatID, notSavedRecipeMsg)
 }
 
-func (p *Processor) sendAll(ctx context.Context, chatID int, username string) error {
-	recipes, err := p.storage.GetAllByUserName(ctx, username)
+func (p *Processor) sendAll(ctx context.Context, chatID int, username string, page int64, messageID int) error {
+	var recipesPerPage int64 = 6
+
+	recipesCount, err := p.storage.GetTotalRecipesCount(ctx, username)
 	if err != nil {
 		return err
 	}
 
-	if len(recipes) == 0 {
+	if recipesCount == 0 {
 		return p.tg.SendMessage(chatID, noRecipesMsg)
 	}
 
-	var str string
-
-	for idx, recipe := range recipes {
-		str = fmt.Sprintf("%s\n%d. %s", str, idx+1, recipe.Name)
+	recipes, err := p.storage.GetAllByUserName(ctx, username, page, recipesPerPage)
+	if err != nil {
+		return err
 	}
 
-	return p.tg.SendMessage(chatID, str)
+	inlineKeyboard := tgClient.InlineKeyboard{}
+	chunkSize := 2
+
+	for i := 0; i < len(recipes); i += chunkSize {
+		end := i + chunkSize
+		if end > len(recipes) {
+			end = len(recipes)
+		}
+		chunk := recipes[i:end]
+		items := make([]tgClient.InlineKeyboardButton, len(chunk))
+		for j, r := range chunk {
+			items[j] = NewInlineKeyboardButton(r.Name, fmt.Sprintf("cb:get:%v", r.Name))
+		}
+		inlineKeyboard.AddKeys(items)
+	}
+
+	totalPagesNum := events.GetPagesCount(recipesCount, recipesPerPage)
+	totalCountMsg := fmt.Sprintf("%v/%v", page, totalPagesNum)
+
+	nexPageValue := page
+	if page >= totalPagesNum {
+		nexPageValue = 1
+	} else {
+		nexPageValue++
+	}
+
+	prevPageValue := page
+	if page-1 <= 0 {
+		prevPageValue = totalPagesNum
+	} else {
+		prevPageValue--
+	}
+
+	inlineKeyboard.AddKeys(
+		NewInlineKeyboardRow(
+			NewInlineKeyboardButton("←", fmt.Sprintf("cb:getall:%v", prevPageValue)),
+			NewInlineKeyboardButton(totalCountMsg, "_"),
+			NewInlineKeyboardButton("→", fmt.Sprintf("cb:getall:%v", nexPageValue)),
+		),
+	)
+
+	err = p.tg.SendMessageWithMarkup(chatID, "Your recipes:", &inlineKeyboard)
+	if err != nil {
+		return err
+	}
+
+	return p.tg.DeleteMessage(chatID, messageID)
 }
 
 func (p *Processor) deleteRecipe(ctx context.Context, chatID int, recipeName string, username string) error {
@@ -146,19 +194,20 @@ func (p *Processor) getRecipe(ctx context.Context, chatID int, recipeName string
 
 		return p.tg.SendMessage(chatID, fmt.Sprintf(notFoundRecipeMsg, recipeName))
 	}
+	inlineKeyboard := tgClient.InlineKeyboard{}
 
-	inlineKeyboard := tgClient.InlineKeyboard{
-		InlineKeyboard: [][]tgClient.InlineKeyboardButton{
-			{
-				{Text: "Показать рецепт", CallbackData: fmt.Sprintf("cb:get:%s", recipeName)},
-				{Text: "Удалить рецепт", CallbackData: fmt.Sprintf("cb:delete:%s", recipeName)},
-			},
-		},
-	}
+	inlineKeyboard.AddKeys(
+		NewInlineKeyboardRow(
+			NewInlineKeyboardButton("Show recipe", fmt.Sprintf("cb:get:%s", recipeName)),
+			NewInlineKeyboardButton("Delete recipe", fmt.Sprintf("cb:delete:%s", recipeName)),
+		),
+	)
+
+	msg := fmt.Sprintf("Dish: %v", recipe.Name)
 
 	return p.tg.SendMessageWithMarkup(
 		chatID,
-		fmt.Sprintf("Блюдо: %v", recipe.Name),
+		msg,
 		&inlineKeyboard,
 	)
 }
@@ -176,9 +225,13 @@ func (p *Processor) getFullRecipe(ctx context.Context, chatID int, recipeName st
 		result = append(result, "- "+ingredient)
 	}
 
+	msg := fmt.Sprintf(
+		templateMsg, recipe.Name, strings.Join(result, "\n"),
+		recipe.Instructions,
+	)
+
 	return p.tg.SendMessage(
 		chatID,
-		fmt.Sprintf(templateMsg, recipe.Name, strings.Join(result, "\n"),
-			recipe.Instructions),
+		msg,
 	)
 }

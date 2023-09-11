@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	StartCmd = "/start"
-	HelpCmd  = "/help"
-	AllCmd   = "/all"
-	AddCmd   = "/add"
+	StartCmd   = "/start"
+	HelpCmd    = "/help"
+	AllCmd     = "/all"
+	AllTestCmd = "/all1"
+	AddCmd     = "/add"
 )
 
 func (p *Processor) doCmd(ctx context.Context, text string, chatID int, username string) error {
@@ -44,7 +45,7 @@ func (p *Processor) doCmd(ctx context.Context, text string, chatID int, username
 	case AddCmd:
 		return p.startRecipeSave(ctx, chatID, username)
 	case AllCmd:
-		return p.sendAll(ctx, chatID, username)
+		return p.sendAll(ctx, chatID, username, 1, 0) // TODO: fix 0
 	default:
 		return p.tg.SendMessage(chatID, unknownCommandMsg)
 	}
