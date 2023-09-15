@@ -72,6 +72,9 @@ jobs:
             docker login $(echo $REGISTRY_BASE_URL) -u ${{ secrets.REGISTRY_LOGIN }} -p ${{ secrets.REGISTRY_PASSWORD }}
 
             # Set env variables
+            export ENV_DB_STRING=${{ secrets.DB_STRING }}
+            export ENV_CACHE_HOST=${{ secrets.CACHE_HOST }}
+            export ENV_TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}
 
             # Stop running container
             docker stop $(echo $CONTAINER_NAME)
